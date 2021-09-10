@@ -1,0 +1,26 @@
+{
+  "name": "cors-proksy",
+  "version": "0.0.1",
+  "description": "",
+  "license": "MIT",
+  "main": "src/cors-proksy.js",
+  "files": [
+    "src/",
+    "server.js"
+  ],
+  "dependencies": {
+    "http-proxy": "1.11.1",
+    "proxy-from-env": "0.0.1"
+  },
+  "devDependencies": {
+    "eslint": "^2.2.0",
+    "lolex": "^1.5.0",
+    "nock": "^8.2.1"
+  },
+  "scripts": {
+    "lint": "eslint ."
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  }
+}
