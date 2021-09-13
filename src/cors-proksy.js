@@ -56,13 +56,9 @@ function proxyRequest(req, res, proxy) {
     headers: {
       host: location.host,
     },
-    // HACK: Get hold of the proxyReq object, because we need it later.
-    // https://github.com/nodejitsu/node-http-proxy/blob/v1.11.1/lib/http-proxy/passes/web-incoming.js#L144
     buffer: {
       pipe: function(proxyReq) {
         var proxyReqOn = proxyReq.on;
-        // Intercepts the handler that connects proxyRes to res.
-        // https://github.com/nodejitsu/node-http-proxy/blob/v1.11.1/lib/http-proxy/passes/web-incoming.js#L146-L158
         proxyReq.on = function(eventName, listener) {
           if (eventName !== 'response') {
             return proxyReqOn.call(this, eventName, listener);
@@ -72,8 +68,6 @@ function proxyRequest(req, res, proxy) {
               try {
                 listener(proxyRes);
               } catch (err) {
-                // Forward error (will ultimately emit the 'error' event on our proxy object):
-                // https://github.com/nodejitsu/node-http-proxy/blob/v1.11.1/lib/http-proxy/passes/web-incoming.js#L134
                 proxyReq.emit('error', err);
               }
             }
@@ -222,8 +216,6 @@ function getHandler(options, proxy) {
     handleInitialRequest: null,     // Function that may handle the request instead, by returning a truthy value.
     getProxyForUrl: getProxyForUrl, // Function that specifies the proxy to use
     maxRedirects: 5,                // Maximum number of redirects to be followed.
-    originBlacklist: [],            // Requests from these origins will be blocked.
-    originWhitelist: [],            // If non-empty, requests not from an origin in this list will be blocked.
     redirectSameOrigin: false,      // Redirect the client to the requested URL for same-origin requests.
     requireHeader: null,            // Require a header to be set?
     removeHeaders: [],              // Strip these request headers.
@@ -319,17 +311,6 @@ function getHandler(options, proxy) {
     }
 
     var origin = req.headers.origin || '';
-    if (corsProksy.originBlacklist.indexOf(origin) >= 0) {
-      res.writeHead(403, 'Forbidden', cors_headers);
-      res.end('The origin "' + origin + '" was blacklisted by the operator of this proxy.');
-      return;
-    }
-
-    if (corsProksy.originWhitelist.length && corsProksy.originWhitelist.indexOf(origin) === -1) {
-      res.writeHead(403, 'Forbidden', cors_headers);
-      res.end('The origin "' + origin + '" was not whitelisted by the operator of this proxy.');
-      return;
-    }
 
     if (corsProksy.redirectSameOrigin && origin && location.href[origin.length] === '/' &&
         location.href.lastIndexOf(origin, 0) === 0) {
@@ -389,11 +370,6 @@ exports.createServer = function createServer(options) {
   // When the server fails, just show a 404 instead of Internal server error
   proxy.on('error', function(err, req, res) {
     if (res.headersSent) {
-      // This could happen when a protocol error occurs when an error occurs
-      // after the headers have been received (and forwarded). Do not write
-      // the headers because it would generate an error.
-      // Prior to Node 13.x, the stream would have ended.
-      // As of Node 13.x, we must explicitly close it.
       if (res.writableEnded === false) {
         res.end();
       }
