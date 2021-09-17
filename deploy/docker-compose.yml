@@ -1,9 +1,11 @@
-#version: '3'
-#
-#services:
-#  server:
-#    container_name: looky-ui-nginx
-#    image: registry.gitlab.com/opus.tech/looky/looky-ui:${looky_ui_version}
-#    ports:
-#      - "80:80"
-#    restart: always
+version: '1'
+
+services:
+  server:
+    container_name: cors-proksy
+    image: amakilla/cors-proksy:latest
+    command: sh -c "npm install && node server.js"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    restart: always
