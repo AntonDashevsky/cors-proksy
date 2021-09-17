@@ -12,12 +12,27 @@ function isValidHostName(hostname) {
   );
 }
 
-/**
- * Adds CORS headers to the response headers.
- *
- * @param headers {object} Response headers
- * @param request {ServerRequest}
- */
+var help_text = {};
+function showUsage(help_file, headers, response) {
+  var isHtml = /\.html$/.test(help_file);
+  headers['content-type'] = isHtml ? 'text/html' : 'text/plain';
+  if (help_text[help_file] != null) {
+    response.writeHead(200, headers);
+    response.end(help_text[help_file]);
+  } else {
+    require('fs').readFile(help_file, 'utf8', function(err, data) {
+      if (err) {
+        console.error(err);
+        response.writeHead(500, headers);
+        response.end();
+      } else {
+        help_text[help_file] = data;
+        showUsage(help_file, headers, response); // Recursive call, but since data is a string, the recursion will end
+      }
+    });
+  }
+}
+
 function withCORS(headers, request) {
   headers['access-control-allow-origin'] = '*';
   var corsMaxAge = request.corsProksyRequestState.corsMaxAge;
@@ -38,13 +53,6 @@ function withCORS(headers, request) {
   return headers;
 }
 
-/**
- * Performs the actual proxy request.
- *
- * @param req {ServerRequest} Incoming http request
- * @param res {ServerResponse} Outgoing (proxied) http request
- * @param proxy {HttpProxy}
- */
 function proxyRequest(req, res, proxy) {
   var location = req.corsProksyRequestState.location;
   req.url = location.path;
@@ -153,7 +161,6 @@ function onProxyResponse(proxy, proxyReq, proxyRes, req, res) {
 
           // Remove the error listener so that the ECONNRESET "error" that
           // may occur after aborting a request does not propagate to res.
-          // https://github.com/nodejitsu/node-http-proxy/blob/v1.11.1/lib/http-proxy/passes/web-incoming.js#L134
           proxyReq.removeAllListeners('error');
           proxyReq.once('error', function catchAndIgnoreError() {});
           proxyReq.abort();
@@ -220,6 +227,7 @@ function getHandler(options, proxy) {
     requireHeader: null,            // Require a header to be set?
     removeHeaders: [],              // Strip these request headers.
     setHeaders: {},                 // Set these request headers.
+    helpFile: __dirname + '/help.txt',
     corsMaxAge: 0,                  // If set, an Access-Control-Max-Age header with this value (in seconds) will be added.
   };
 
@@ -269,15 +277,13 @@ function getHandler(options, proxy) {
     }
 
     if (!location) {
-      // Special case http:/notenoughslashes, because new users of the library frequently make the
-      // mistake of putting this application behind a server/router that normalizes the URL.
-      // See https://github.com/Rob--W/cors-anywhere/issues/238#issuecomment-629638853
       if (/^\/https?:\/[^/]/i.test(req.url)) {
         res.writeHead(400, 'Missing slash', cors_headers);
         res.end('The URL is invalid: two slashes are needed after the http(s):.');
         return;
       }
-      res.writeHead(200, 'CORS PROKSY IS RUNNING', cors_headers);
+      // Invalid API call. Show how to correctly use the API
+      showUsage(corsProksy.helpFile, cors_headers, res);
       return;
     }
 

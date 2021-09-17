@@ -1,9 +1,9 @@
-version: '3'
-
-services:
-  server:
-    container_name: looky-ui-nginx
-    image: registry.gitlab.com/opus.tech/looky/looky-ui:${looky_ui_version}
-    ports:
-      - "80:80"
-    restart: always
+#version: '3'
+#
+#services:
+#  server:
+#    container_name: looky-ui-nginx
+#    image: registry.gitlab.com/opus.tech/looky/looky-ui:${looky_ui_version}
+#    ports:
+#      - "80:80"
+#    restart: always
