@@ -6,5 +6,6 @@ services:
     image: amakilla/cors-proksy:latest
     command: sh -c "npm install && node server.js"
     ports:
-      - "8080:8080"
+      - "81:81"
+      - "8181:8181"
     restart: always
