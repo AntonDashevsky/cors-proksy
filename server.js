@@ -5,7 +5,7 @@ var port = process.env.PORT || 8181;
 
 var cors_proxy = require('./src/cors-proksy');
 cors_proxy.createServer({
-  requireHeader: [],
+  requireHeader: ['origin', 'x-requested-with'],
   removeHeaders: [
     'cookie',
     'cookie2',
